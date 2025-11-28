@@ -1,0 +1,6 @@
+chromadb
+openai
+tiktoken
+requests
+sentence-transformers
+tqdm
