@@ -4,3 +4,8 @@ tiktoken
 requests
 sentence-transformers
 tqdm
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+cerebras-cloud-sdk

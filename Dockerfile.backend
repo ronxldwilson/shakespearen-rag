@@ -1,0 +1,41 @@
+# Use Python 3.11 slim image
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies (optimized)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python dependencies (optimized)
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy application code (Python files separately for better caching)
+COPY *.py .
+
+# Create directory for ChromaDB persistence
+RUN mkdir -p /app/shakespeare_chroma_db
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV CHROMA_PATH=/app/shakespeare_chroma_db
+
+# Create initialization script
+RUN echo '#!/bin/bash\n\
+if [ ! -d "/app/shakespeare_chroma_db" ] || [ -z "$(ls -A /app/shakespeare_chroma_db 2>/dev/null)" ]; then\n\
+    echo "Initializing ChromaDB database..."\n\
+    python script.py\n\
+else\n\
+    echo "ChromaDB database already exists"\n\
+fi' > /app/init-db.sh && chmod +x /app/init-db.sh
+
+# Expose port
+EXPOSE 8000
+
+# Run initialization and then start the application
+CMD ["/bin/bash", "-c", "/app/init-db.sh && uvicorn app:app --host 0.0.0.0 --port 8000"]
+

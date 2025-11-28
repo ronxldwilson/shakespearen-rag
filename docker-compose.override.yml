@@ -1,0 +1,25 @@
+# Development overrides for faster development
+services:
+  backend:
+    # Mount source code for hot reloading
+    volumes:
+      - .:/app
+      - ./shakespeare_chroma_db:/app/shakespeare_chroma_db
+      - ./.env:/app/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Override the default CMD to enable hot reloading
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    # Mount source code for hot reloading
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    # Override for development mode
+    command: npm run dev
+    ports:
+      - "3000:3000"

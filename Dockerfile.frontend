@@ -1,0 +1,52 @@
+# Multi-stage build for Next.js frontend
+FROM node:20 AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY frontend/package*.json ./
+
+# Install ALL dependencies (including dev dependencies for building)
+RUN npm ci --prefer-offline --no-audit
+
+# Copy source code
+COPY frontend/ .
+
+# Build the application
+RUN npm run build
+
+# Production stage - use Alpine for smaller image
+FROM node:20-alpine AS runner
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY frontend/package*.json ./
+
+# Install only production dependencies (for running, not building)
+RUN npm ci --only=production --prefer-offline --no-audit && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.* ./
+
+# Create a non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+
+# Change ownership of the app directory
+RUN chown -R nextjs:nodejs /app
+USER nextjs
+
+# Expose port
+EXPOSE 3000
+
+# Set environment variables for production
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Start the application
+CMD ["npm", "start"]
